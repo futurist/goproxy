@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/elazarl/goproxy"
 )
@@ -15,6 +16,13 @@ func main() {
 	setCA(caCert, caKey)
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm)
+	proxy.OnRequest().DoFunc(func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+		if strings.HasPrefix(req.URL.String(), "https://www.example.com") {
+			req.URL.Scheme = "http"
+			req.URL.Host = "localhost:13000"
+		}
+		return req, nil
+	})
 	proxy.Verbose = *verbose
 	log.Fatal(http.ListenAndServe(*addr, proxy))
 }
